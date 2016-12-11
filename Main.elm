@@ -16,6 +16,11 @@ main =
 -- MODEL
 
 
+type Page
+    = Current
+    | All
+
+
 type alias Release =
     { version : String
     , status : Int
@@ -24,15 +29,22 @@ type alias Release =
 
 type alias Model =
     { releases : List Release
-    , current : Int
-    , show : Maybe Int
+    , current : String
+    , show : Page
     }
 
 
+releases =
+    [ { version = "0.1", status = 0 }
+    , { version = "0.2", status = 0 }
+    , { version = "0.3", status = 0 }
+    ]
+
+
 model =
-    { releases = []
-    , current = 0
-    , show = Nothing
+    { releases = releases
+    , current = "0.3"
+    , show = Current
     }
 
 
@@ -41,22 +53,49 @@ model =
 
 
 type Msg
-    = ShowCurrent Int
+    = ShowCurrent
     | ShowAll
 
 
 update : Msg -> Model -> Model
 update msg model =
     case msg of
-        ShowCurrent id ->
-            { model | show = Just id }
+        ShowCurrent ->
+            { model | show = Current }
 
         ShowAll ->
-            { model | show = Nothing }
+            { model | show = All }
 
 
 
 -- VIEW
+
+
+renderList : List a -> Html Msg
+renderList list =
+    ul [] (list |> List.map (\elt -> li [] [ elt |> toString |> text ]))
+
+
+renderReleaseVersion : String -> Html Msg
+renderReleaseVersion version =
+    let
+        target =
+            model.releases |> List.filter (\release -> release.version == version) |> List.head
+    in
+        case target of
+            Just release ->
+                renderRelease release
+
+            Nothing ->
+                text "404"
+
+
+renderRelease : Release -> Html Msg
+renderRelease release =
+    div []
+        [ h1 [] [ release.version |> text ]
+        , div [] [ release.status |> toString |> text ]
+        ]
 
 
 view : Model -> Html Msg
@@ -64,17 +103,15 @@ view model =
     let
         content =
             case model.show of
-                Just id ->
-                    model.current
-                        |> toString
-                        |> text
+                Current ->
+                    renderReleaseVersion model.current
 
-                Nothing ->
-                    model.releases |> toString |> text
+                All ->
+                    model.releases |> renderList
     in
         div []
             [ div []
-                [ button [ onClick (ShowCurrent 0) ] [ text "Current" ]
+                [ button [ onClick ShowCurrent ] [ text "Current" ]
                 , button [ onClick ShowAll ] [ text "All" ]
                 ]
             , div []
